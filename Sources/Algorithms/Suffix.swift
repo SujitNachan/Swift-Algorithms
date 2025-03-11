@@ -14,13 +14,16 @@
 //===----------------------------------------------------------------------===//
 
 extension BidirectionalCollection {
-  /// Returns a subsequence containing the elements from the end until
-  /// `predicate` returns `false` and skipping the remaining elements.
+  /// Returns a subsequence containing the suffix of this collection where
+  /// all elements pass the given closure.
   ///
-  /// - Parameter predicate: A closure that takes an element of the
-  ///   sequence as its argument and returns `true` if the element should
-  ///   be included or `false` if it should be excluded. Once the predicate
-  ///   returns `false` it will not be called again.
+  /// - Parameter predicate: A closure that takes an element of the sequence as
+  ///   its argument and returns `true` if the element should be included or
+  ///   `false` if it should be excluded. Once the predicate returns `false` it
+  ///   will not be called again.
+  /// - Returns: A subsequence that is a suffix of the collection, where
+  ///   `predicate` returns `true` for all the elements of the returned
+  ///   subsequence.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
@@ -43,10 +46,12 @@ extension Collection {
   ///   as its argument and returns `true` if the element is part of the prefix
   ///   or `false` if it is not. Once the predicate returns `false` it will not
   ///   be called again.
+  /// - Returns: The index of the first element for which `predicate` does not
+  ///   succeed, or `endIndex` if all the collection's elements pass.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
-  @usableFromInline
-  internal func endOfPrefix(
+  @inlinable
+  public func endOfPrefix(
     while predicate: (Element) throws -> Bool
   ) rethrows -> Index {
     var index = startIndex
@@ -69,10 +74,12 @@ extension BidirectionalCollection {
   ///   as its argument and returns `true` if the element is part of the suffix
   ///   or `false` if it is not. Once the predicate returns `false` it will not
   ///   be called again.
+  /// - Returns: The index of the last element for which `predicate` does not
+  ///   succeed, or `startIndex` if all the collection's elements pass.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
-  @usableFromInline
-  internal func startOfSuffix(
+  @inlinable
+  public func startOfSuffix(
     while predicate: (Element) throws -> Bool
   ) rethrows -> Index {
     var index = endIndex

@@ -10,8 +10,9 @@
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
-// LazySplitSequence
+// SplitSequence
 //===----------------------------------------------------------------------===//
+
 /// A sequence that lazily splits a base sequence into subsequences separated by
 /// elements that satisfy the given `whereSeparator` predicate.
 ///
@@ -21,7 +22,7 @@
 ///     x.split(separator:maxSplits:omittingEmptySubsequences)
 ///
 ///   where `x` conforms to `LazySequenceProtocol`.
-public struct LazySplitSequence<Base: Sequence> {
+public struct SplitSequence<Base: Sequence> {
   @usableFromInline
   internal let base: Base
 
@@ -34,7 +35,7 @@ public struct LazySplitSequence<Base: Sequence> {
   @usableFromInline
   internal let omittingEmptySubsequences: Bool
 
-  @usableFromInline
+  @inlinable
   internal init(
     base: Base,
     isSeparator: @escaping (Base.Element) -> Bool,
@@ -48,7 +49,7 @@ public struct LazySplitSequence<Base: Sequence> {
   }
 }
 
-extension LazySplitSequence {
+extension SplitSequence: Sequence {
   public struct Iterator {
     public typealias Element = [Base.Element]
 
@@ -72,7 +73,7 @@ extension LazySplitSequence {
     @usableFromInline
     internal var sequenceLength = 0
 
-    @usableFromInline
+    @inlinable
     internal init(
       base: Base.Iterator,
       whereSeparator: @escaping (Base.Element) -> Bool,
@@ -85,30 +86,40 @@ extension LazySplitSequence {
       self.omittingEmptySubsequences = omittingEmptySubsequences
     }
   }
+
+  @inlinable
+  public func makeIterator() -> Iterator {
+    Iterator(
+      base: base.makeIterator(),
+      whereSeparator: self.isSeparator,
+      maxSplits: self.maxSplits,
+      omittingEmptySubsequences: self.omittingEmptySubsequences
+    )
+  }
 }
 
-extension LazySplitSequence.Iterator: IteratorProtocol {
+extension SplitSequence.Iterator: IteratorProtocol {
   @inlinable
   public mutating func next() -> Element? {
-    var currentElement = base.next()
+    var nextElement = base.next()
     var subsequence: Element = []
 
     // Add the next elements of the base sequence to this subsequence, until we
     // reach a separator, unless we've already split the maximum number of
     // times. In all cases, stop at the end of the base sequence.
-    while currentElement != nil {
-      if splitCount < maxSplits && isSeparator(currentElement!) {
+    while let currentElement = nextElement {
+      if splitCount < maxSplits && isSeparator(currentElement) {
         if omittingEmptySubsequences && subsequence.isEmpty {
           // Keep going if we don't want to return an empty subsequence.
-          currentElement = base.next()
+          nextElement = base.next()
           continue
         } else {
           splitCount += 1
           break
         }
       } else {
-        subsequence.append(currentElement!)
-        currentElement = base.next()
+        subsequence.append(currentElement)
+        nextElement = base.next()
       }
     }
 
@@ -116,7 +127,7 @@ extension LazySplitSequence.Iterator: IteratorProtocol {
     // and we've either returned the maximum number of subsequences (one more
     // than the number of separators), or the only subsequence left to return is
     // empty and we're omitting those.
-    if currentElement == nil
+    if nextElement == nil
       && (sequenceLength == splitCount + 1
         || omittingEmptySubsequences && subsequence.isEmpty)
     {
@@ -128,17 +139,7 @@ extension LazySplitSequence.Iterator: IteratorProtocol {
   }
 }
 
-extension LazySplitSequence: LazySequenceProtocol {
-  @inlinable
-  public func makeIterator() -> Iterator {
-    return Iterator(
-      base: base.makeIterator(),
-      whereSeparator: self.isSeparator,
-      maxSplits: self.maxSplits,
-      omittingEmptySubsequences: self.omittingEmptySubsequences
-    )
-  }
-}
+extension SplitSequence: LazySequenceProtocol {}
 
 extension LazySequenceProtocol {
   /// Lazily returns the longest possible subsequences of the sequence, in
@@ -218,7 +219,7 @@ extension LazySequenceProtocol {
   ///     satisfying the `isSeparator` predicate and for each element at the
   ///     start or end of the sequence satisfying the `isSeparator`
   ///     predicate. The default value is `true`.
-  ///   - whereSeparator: A closure that takes an element as an argument and
+  ///   - isSeparator: A closure that takes an element as an argument and
   ///     returns a Boolean value indicating whether the sequence should be
   ///     split at that element.
   /// - Returns: A lazy sequence of subsequences, split from this sequence's
@@ -230,10 +231,10 @@ extension LazySequenceProtocol {
     maxSplits: Int = Int.max,
     omittingEmptySubsequences: Bool = true,
     whereSeparator isSeparator: @escaping (Element) -> Bool
-  ) -> LazySplitSequence<Elements> {
+  ) -> SplitSequence<Elements> {
     precondition(maxSplits >= 0, "Must take zero or more splits")
 
-    return LazySplitSequence(
+    return SplitSequence(
       base: elements,
       isSeparator: isSeparator,
       maxSplits: maxSplits,
@@ -320,10 +321,10 @@ extension LazySequenceProtocol where Element: Equatable {
     separator: Element,
     maxSplits: Int = Int.max,
     omittingEmptySubsequences: Bool = true
-  ) -> LazySplitSequence<Elements> {
+  ) -> SplitSequence<Elements> {
     precondition(maxSplits >= 0, "Must take zero or more splits")
 
-    return LazySplitSequence(
+    return SplitSequence(
       base: elements,
       isSeparator: { $0 == separator },
       maxSplits: maxSplits,
@@ -333,8 +334,9 @@ extension LazySequenceProtocol where Element: Equatable {
 }
 
 //===----------------------------------------------------------------------===//
-// LazySplitCollection
+// SplitCollection
 //===----------------------------------------------------------------------===//
+
 /// A collection that lazily splits a base collection into subsequences
 /// separated by elements that satisfy the given `whereSeparator` predicate.
 ///
@@ -343,8 +345,8 @@ extension LazySequenceProtocol where Element: Equatable {
 ///     x.split(maxSplits:omittingEmptySubsequences:whereSeparator)
 ///     x.split(separator:maxSplits:omittingEmptySubsequences)
 ///
-///   where `x` conforms to `LazyCollectionProtocol`.
-public struct LazySplitCollection<Base: Collection> {
+///   where `x` conforms to `LazySequenceProtocol` and `Collection`.
+public struct SplitCollection<Base: Collection> {
   @usableFromInline
   internal let base: Base
 
@@ -360,7 +362,7 @@ public struct LazySplitCollection<Base: Collection> {
   @usableFromInline
   internal var _startIndex: Index
 
-  @usableFromInline
+  @inlinable
   internal init(
     base: Base,
     isSeparator: @escaping (Base.Element) -> Bool,
@@ -398,7 +400,7 @@ public struct LazySplitCollection<Base: Collection> {
   }
 }
 
-extension LazySplitCollection: LazyCollectionProtocol {
+extension SplitCollection: Collection {
   /// Position of a subsequence in a split collection.
   public struct Index: Comparable {
     /// The range corresponding to the subsequence at this position.
@@ -415,7 +417,7 @@ extension LazySplitCollection: LazyCollectionProtocol {
     @usableFromInline
     internal let splitCount: Int
 
-    @usableFromInline
+    @inlinable
     internal init(
       baseRange: Range<Base.Index>,
       sequenceLength: Int,
@@ -441,7 +443,7 @@ extension LazySplitCollection: LazyCollectionProtocol {
 
   /// Returns the index of the subsequence starting at or after the given base
   /// collection index.
-  @usableFromInline
+  @inlinable
   internal func indexForSubsequence(
     atOrAfter lowerBound: Base.Index,
     sequenceLength: Int,
@@ -475,7 +477,7 @@ extension LazySplitCollection: LazyCollectionProtocol {
     }
 
     var updatedSplitCount = splitCount
-    if end < base.endIndex {
+    if end != base.endIndex {
       // This subsequence ends on a separator (and perhaps includes other
       // separators, if we're omitting empty subsequences), so we've performed
       // another split.
@@ -510,7 +512,7 @@ extension LazySplitCollection: LazyCollectionProtocol {
     var subsequenceStart = i.baseRange.upperBound
     if subsequenceStart < base.endIndex {
       // If we're not already at the end of the base collection, the previous
-      // susequence ended with a separator. Start searching for the next
+      // subsequence ended with a separator. Start searching for the next
       // subsequence at the following element.
       subsequenceStart = base.index(after: i.baseRange.upperBound)
     }
@@ -547,13 +549,16 @@ extension LazySplitCollection: LazyCollectionProtocol {
   }
 }
 
-extension LazySplitCollection.Index: Hashable {
+extension SplitCollection.Index: Hashable {
+  @inlinable
   public func hash(into hasher: inout Hasher) {
     hasher.combine(sequenceLength)
   }
 }
 
-extension LazyCollectionProtocol {
+extension SplitCollection: LazyCollectionProtocol {}
+
+extension LazySequenceProtocol where Self: Collection, Elements: Collection {
   /// Lazily returns the longest possible subsequences of the collection, in
   /// order, that don't contain elements satisfying the given predicate.
   ///
@@ -629,7 +634,7 @@ extension LazyCollectionProtocol {
   ///     satisfying the `isSeparator` predicate and for each element at the
   ///     start or end of the collection satisfying the `isSeparator`
   ///     predicate. The default value is `true`.
-  ///   - whereSeparator: A closure that takes an element as an argument and
+  ///   - isSeparator: A closure that takes an element as an argument and
   ///     returns a Boolean value indicating whether the collection should be
   ///     split at that element.
   /// - Returns: A lazy collection of subsequences, split from this collection's
@@ -641,10 +646,10 @@ extension LazyCollectionProtocol {
     maxSplits: Int = Int.max,
     omittingEmptySubsequences: Bool = true,
     whereSeparator isSeparator: @escaping (Element) -> Bool
-  ) -> LazySplitCollection<Elements> {
+  ) -> SplitCollection<Elements> {
     precondition(maxSplits >= 0, "Must take zero or more splits")
 
-    return LazySplitCollection(
+    return SplitCollection(
       base: elements,
       isSeparator: isSeparator,
       maxSplits: maxSplits,
@@ -653,8 +658,8 @@ extension LazyCollectionProtocol {
   }
 }
 
-extension LazyCollectionProtocol
-where Element: Equatable {
+extension LazySequenceProtocol
+where Self: Collection, Elements: Collection, Element: Equatable {
   /// Lazily returns the longest possible subsequences of the collection, in
   /// order, around elements equal to the given element.
   ///
@@ -737,10 +742,10 @@ where Element: Equatable {
     separator: Element,
     maxSplits: Int = Int.max,
     omittingEmptySubsequences: Bool = true
-  ) -> LazySplitCollection<Elements> {
+  ) -> SplitCollection<Elements> {
     precondition(maxSplits >= 0, "Must take zero or more splits")
 
-    return LazySplitCollection(
+    return SplitCollection(
       base: elements,
       isSeparator: { $0 == separator },
       maxSplits: maxSplits,
