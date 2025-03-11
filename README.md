@@ -2,38 +2,35 @@
 
 **Swift Algorithms** is an open-source package of sequence and collection algorithms, along with their related types.
 
-Read more about the package, and the intent behind it, in the [announcement on swift.org](https://swift.org/blog/swift-algorithms/).
+## Overview
 
-## Contents
+The Algorithms package provides a variety of sequence and collection operations, letting you cycle over a collection's elements, find combinations and permutations, create a random sample, and more.
 
-#### Combinations / permutations
+For example, the package includes a group of "chunking" methods, each of which breaks a collection into consecutive subsequences. One version tests adjacent elements to find the breaking point between chunks — you can use it to quickly separate an array into ascending runs:
 
-- [`combinations(ofCount:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Combinations.md): Combinations of a particular size of the elements in a collection.
-- [`permutations(ofCount:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Permutations.md): Permutations of a particular size of the elements in a collection, or of the full collection.
+```swift
+let numbers = [10, 20, 30, 10, 40, 40, 10, 20]
+let chunks = numbers.chunked(by: { $0 <= $1 })
+// [[10, 20, 30], [10, 40, 40], [10, 20]]
+```
 
-#### Mutating algorithms
+Another version looks for a change in the transformation of each successive value. You can use that to separate a list of names into groups by the first character:
 
-- [`rotate(toStartAt:)`, `rotate(subrange:toStartAt:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Rotate.md): In-place rotation of elements.
-- [`stablePartition(by:)`, `stablePartition(subrange:by:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Partition.md): A partition that preserves the relative order of the resulting prefix and suffix.
+```swift
+let names = ["Cassie", "Chloe", "Jasmine", "Jordan", "Taylor"]
+let chunks = names.chunked(on: \.first)
+// [["Cassie", "Chloe"], ["Jasmine", "Jordan"], ["Taylor"]]
+```
 
-#### Combining collections
+Explore more chunking methods and the remainder of the `Algorithms` package in the links below.
 
-- [`chain(_:_:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Chain.md): Concatenates two collections with the same element type. 
-- [`product(_:_:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Product.md): Iterates over all the pairs of two collections; equivalent to nested `for`-`in` loops.
-- [`cycled()`, `cycled(times:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Cycle.md): Repeats the elements of a collection forever or a set number of times.
+## Documentation
 
-#### Subsetting operations
+For API documentation, see the library's official documentation in Xcode or on the Web.
 
-- [`randomSample(count:)`, `randomSample(count:using:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/RandomSampling.md): Randomly selects a specific number of elements from a collection.
-- [`randomStableSample(count:)`, `randomStableSample(count:using:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/RandomSampling.md): Randomly selects a specific number of elements from a collection, preserving their original relative order.
-- [`uniqued()`, `uniqued(on:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Unique.md): The unique elements of a collection, preserving their order.
-
-#### Other useful operations
-
-- [`chunked(by:)`, `chunked(on:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Chunked.md): Eager and lazy operations that break a collection into chunks based on either a binary predicate or when the result of a projection changes.
-- [`indexed()`](https://github.com/apple/swift-algorithms/blob/main/Guides/Indexed.md): Iterate over tuples of a collection's indices and elements. 
-- [`trimming(where:)`](https://github.com/apple/swift-algorithms/blob/main/Guides/Trim.md): Returns a slice by trimming elements from a collection's start and end. 
-
+- [API documentation][docs]
+- [Swift.org announcement][announcement]
+- [API Proposals/Guides][guides]
 
 ## Adding Swift Algorithms as a Dependency
 
@@ -41,32 +38,29 @@ To use the `Algorithms` library in a SwiftPM project,
 add the following line to the dependencies in your `Package.swift` file:
 
 ```swift
-.package(url: "https://github.com/apple/swift-algorithms", from: "0.0.1"),
+.package(url: "https://github.com/apple/swift-algorithms", from: "1.2.0"),
 ```
 
-Because `Algorithms` is under active development,
-source-stability is only guaranteed within minor versions (e.g. between `0.0.3` and `0.0.4`).
-If you don't want potentially source-breaking package updates,
-use this dependency specification instead:
+Include `"Algorithms"` as a dependency for your executable target:
 
 ```swift
-.package(url: "https://github.com/apple/swift-algorithms", .upToNextMinor(from: "0.0.1")),
+.target(name: "<target>", dependencies: [
+    .product(name: "Algorithms", package: "swift-algorithms"),
+]),
 ```
 
-Finally, include `"Algorithms"` as a dependency for your executable target:
+Finally, add `import Algorithms` to your source code.
 
-```swift
-let package = Package(
-    // name, platforms, products, etc.
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-algorithms", from: "0.0.1"),
-        // other dependencies
-    ],
-    targets: [
-        .target(name: "<target>", dependencies: [
-            .product(name: "Algorithms", package: "swift-algorithms"),
-        ]),
-        // other targets
-    ]
-)
-```
+## Source Stability
+
+The Swift Algorithms package is source stable; version numbers follow [Semantic Versioning](https://semver.org/). Source breaking changes to public API can only land in a new major version.
+
+The public API of the `swift-algorithms` package consists of non-underscored declarations that are marked `public` in the `Algorithms` module. Interfaces that aren't part of the public API may continue to change in any release, including patch releases.
+
+Future minor versions of the package may introduce changes to these rules as needed.
+
+We'd like this package to quickly embrace Swift language and toolchain improvements that are relevant to its mandate. Accordingly, from time to time, we expect that new versions of this package will require clients to upgrade to a more recent Swift toolchain release. Requiring a new Swift release will only require a minor version bump.
+
+[docs]: https://swiftpackageindex.com/apple/swift-algorithms/documentation/algorithms
+[announcement]: https://swift.org/blog/swift-algorithms/
+[guides]: https://github.com/apple/swift-algorithms/tree/main/Guides

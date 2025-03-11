@@ -10,8 +10,34 @@
 //===----------------------------------------------------------------------===//
 
 // For log(_:) and root(_:_:)
-@_implementationOnly
+#if ALGORITHMS_DARWIN_ONLY
+internal import Darwin
+
+extension Double {
+  @_transparent
+  internal static func root(_ x: Double, _ n: Int) -> Double {
+    guard x >= 0 || n % 2 != 0 else { return .nan }
+    if n == 3 { return cbrt(x) }
+    return Double(signOf: x, magnitudeOf: pow(x.magnitude, 1 / Double(n)))
+  }
+
+  @_transparent
+  internal static func log(_ x: Double) -> Double {
+    Darwin.log(x)
+  }
+
+  @_transparent
+  internal static func log(onePlus x: Double) -> Double {
+    Darwin.log1p(x)
+  }
+}
+#elseif swift(>=5.11)
+internal import RealModule
+#elseif swift(>=5.10)
 import RealModule
+#else
+@_implementationOnly import RealModule
+#endif
 
 //===----------------------------------------------------------------------===//
 // randomStableSample(count:)
@@ -30,16 +56,17 @@ extension Collection {
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
   public func randomStableSample<G: RandomNumberGenerator>(
-    count k: Int, using rng: inout G
+    count k: Int,
+    using rng: inout G
   ) -> [Element] {
     guard k > 0 else { return [] }
-    
+
     var remainingCount = count
     guard k < remainingCount else { return Array(self) }
-    
+
     var result: [Element] = []
     result.reserveCapacity(k)
-    
+
     var i = startIndex
     var countToSelect = k
     while countToSelect > 0 {
@@ -52,18 +79,17 @@ extension Collection {
       formIndex(after: &i)
       remainingCount -= 1
     }
-    
+
     return result
   }
-  
+
   /// Randomly selects the specified number of elements from this collection,
   /// maintaining their relative order.
   ///
   /// This method is equivalent to calling `randomStableSample(k:using:)`,
   /// passing in the system's default random generator.
   ///
-  /// - Parameters:
-  ///   - k: The number of elements to randomly select.
+  /// - Parameter k: The number of elements to randomly select.
   /// - Returns: An array of `k` random elements. If `k` is greater than this
   ///   collection's count, then this method returns the full collection.
   ///
@@ -85,16 +111,19 @@ extension Collection {
 
 @usableFromInline
 internal func nextW<G: RandomNumberGenerator>(
-  k: Int, using rng: inout G
+  k: Int,
+  using rng: inout G
 ) -> Double {
   Double.root(.random(in: 0..<1, using: &rng), k)
 }
 
 @usableFromInline
 internal func nextOffset<G: RandomNumberGenerator>(
-  w: Double, using rng: inout G
+  w: Double,
+  using rng: inout G
 ) -> Int {
-  Int(Double.log(.random(in: 0..<1, using: &rng)) / .log(1 - w))
+  let offset = Double.log(.random(in: 0..<1, using: &rng)) / .log(onePlus: -w)
+  return offset < Double(Int.max) ? Int(offset) : Int.max
 }
 
 extension Collection {
@@ -112,49 +141,49 @@ extension Collection {
   ///   where *n* is the length of the collection.
   @inlinable
   public func randomSample<G: RandomNumberGenerator>(
-    count k: Int, using rng: inout G
+    count k: Int,
+    using rng: inout G
   ) -> [Element] {
     guard k > 0 else { return [] }
 
     var w = 1.0
     var result: [Element] = []
     result.reserveCapacity(k)
-    
+
     // Fill the reservoir with the first `k` elements.
     var i = startIndex
-    while i < endIndex, result.count < k {
+    while i != endIndex, result.count < k {
       result.append(self[i])
       formIndex(after: &i)
     }
-    
-    while i < endIndex {
+
+    while i != endIndex {
       // Calculate the next value of w.
       w *= nextW(k: k, using: &rng)
-      
+
       // Find index of the next element to swap into the reservoir.
       let offset = nextOffset(w: w, using: &rng)
       i = index(i, offsetBy: offset, limitedBy: endIndex) ?? endIndex
-      
-      if i < endIndex {
+
+      if i != endIndex {
         // Swap selected element with a randomly chosen one in the reservoir.
         let j = Int.random(in: 0..<result.count, using: &rng)
         result[j] = self[i]
         formIndex(after: &i)
       }
     }
-    
+
     // FIXME: necessary?
     result.shuffle(using: &rng)
     return result
   }
-  
+
   /// Randomly selects the specified number of elements from this collection.
   ///
   /// This method is equivalent to calling `randomSample(k:using:)`, passing in
   /// the system's default random generator.
   ///
-  /// - Parameters:
-  ///   - k: The number of elements to randomly select.
+  /// - Parameter k: The number of elements to randomly select.
   /// - Returns: An array of `k` random elements. The returned elements may be
   ///   in any order. If `k` is greater than this collection's count, then this
   ///   method returns the full collection.
@@ -182,14 +211,15 @@ extension Sequence {
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
   public func randomSample<G: RandomNumberGenerator>(
-    count k: Int, using rng: inout G
+    count k: Int,
+    using rng: inout G
   ) -> [Element] {
     guard k > 0 else { return [] }
-    
+
     var w = 1.0
     var result: [Element] = []
     result.reserveCapacity(k)
-    
+
     // Fill the reservoir with the first `k` elements.
     var iterator = makeIterator()
     while result.count < k, let el = iterator.next() {
@@ -199,33 +229,32 @@ extension Sequence {
     while true {
       // Calculate the next value of w.
       w *= nextW(k: k, using: &rng)
-      
+
       // Find the offset of the next element to swap into the reservoir.
-      var offset = nextOffset(w: w, using: &rng) + 1
-      
-      // Skip over `offset - 1` elements to find the selected element.
-      while offset > 1, let _ = iterator.next() {
+      var offset = nextOffset(w: w, using: &rng)
+
+      // Skip over `offset` elements to find the selected element.
+      while offset > 0, iterator.next() != nil {
         offset -= 1
       }
       guard let nextElement = iterator.next() else { break }
-      
+
       // Swap selected element with a randomly chosen one in the reservoir.
       let j = Int.random(in: 0..<result.count, using: &rng)
       result[j] = nextElement
     }
-    
+
     // FIXME: necessary?
     result.shuffle(using: &rng)
     return result
   }
-  
+
   /// Randomly selects the specified number of elements from this sequence.
   ///
   /// This method is equivalent to calling `randomSample(k:using:)`, passing in
   /// the system's default random generator.
   ///
-  /// - Parameters:
-  ///   - k: The number of elements to randomly select.
+  /// - Parameter k: The number of elements to randomly select.
   /// - Returns: An array of `k` random elements. The returned elements may be
   ///   in any order. If `k` is greater than this sequence's count, then this
   ///   method returns the full sequence.
