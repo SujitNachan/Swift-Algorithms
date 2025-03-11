@@ -10,6 +10,7 @@
 //===----------------------------------------------------------------------===//
 
 import XCTest
+
 @testable import Algorithms
 
 final class JoinedTests: XCTestCase {
@@ -21,112 +22,175 @@ final class JoinedTests: XCTestCase {
     ["foo", "bar"],
     ["", "", "foo", "", "bar", "baz", ""],
   ]
-  
+
   func testJoined() {
     let expected = ["", "", "", "foo", "foobar", "foobarbaz"]
-    
+
     for (strings, expected) in zip(stringArrays, expected) {
       // regular sequence
-      XCTAssertEqualSequences(AnySequence(strings).joined(), expected)
-      
+      expectEqualSequences(AnySequence(strings).joined(), expected)
+
       // lazy sequence
-      XCTAssertEqualSequences(AnySequence(strings).lazy.joined(), expected)
-      
+      expectEqualSequences(AnySequence(strings).lazy.joined(), expected)
+
       // regular collection
-      XCTAssertEqualSequences(strings.joined(), expected)
-      
+      expectEqualSequences(strings.joined(), expected)
+
       // lazy collection
-      XCTAssertEqualSequences(strings.lazy.joined() as FlattenCollection, expected)
+      expectEqualSequences(
+        strings.lazy.joined() as FlattenCollection, expected)
     }
   }
-  
+
   func testJoinedByElement() {
     let separator: Character = " "
     let expected = ["", "", " ", "foo", "foo bar", "  foo  bar baz "]
-    
+
     for (strings, expected) in zip(stringArrays, expected) {
-      XCTAssertEqualSequences(AnySequence(strings).joined(by: separator), expected)
-      XCTAssertEqualSequences(AnySequence(strings).lazy.joined(by: separator), expected)
-      XCTAssertEqualSequences(strings.joined(by: separator), expected)
-      XCTAssertEqualSequences(strings.lazy.joined(by: separator), expected)
+      expectEqualSequences(
+        AnySequence(strings).joined(by: separator), expected)
+      expectEqualSequences(
+        AnySequence(strings).lazy.joined(by: separator), expected)
+      expectEqualSequences(strings.joined(by: separator), expected)
+      expectEqualSequences(strings.lazy.joined(by: separator), expected)
     }
   }
-  
+
   func testJoinedBySequence() {
     let separator = ", "
     let expected = ["", "", ", ", "foo", "foo, bar", ", , foo, , bar, baz, "]
-    
+
     for (strings, expected) in zip(stringArrays, expected) {
-      XCTAssertEqualSequences(AnySequence(strings).joined(by: separator), expected)
-      XCTAssertEqualSequences(AnySequence(strings).lazy.joined(by: separator), expected)
-      XCTAssertEqualSequences(strings.joined(by: separator), expected)
-      XCTAssertEqualSequences(strings.lazy.joined(by: separator), expected)
+      expectEqualSequences(
+        AnySequence(strings).joined(by: separator), expected)
+      expectEqualSequences(
+        AnySequence(strings).lazy.joined(by: separator), expected)
+      expectEqualSequences(strings.joined(by: separator), expected)
+      expectEqualSequences(strings.lazy.joined(by: separator), expected)
     }
   }
-  
+
   func testJoinedByElementClosure() {
     let separator = { (left: String, right: String) -> Character in
       left.isEmpty || right.isEmpty ? " " : "-"
     }
-    
+
     let expected = ["", "", " ", "foo", "foo-bar", "  foo  bar-baz "]
-    
+
     for (strings, expected) in zip(stringArrays, expected) {
-      XCTAssertEqualSequences(AnySequence(strings).joined(by: separator), expected)
-      XCTAssertEqualSequences(AnySequence(strings).lazy.joined(by: separator), expected)
-      XCTAssertEqualSequences(strings.joined(by: separator), expected)
-      XCTAssertEqualSequences(strings.lazy.joined(by: separator), expected)
+      expectEqualSequences(
+        AnySequence(strings).joined(by: separator), expected)
+      expectEqualSequences(
+        AnySequence(strings).lazy.joined(by: separator), expected)
+      expectEqualSequences(strings.joined(by: separator), expected)
+      expectEqualSequences(strings.lazy.joined(by: separator), expected)
     }
   }
-  
+
   func testJoinedBySequenceClosure() {
     let separator = { (left: String, right: String) in
       "(\(left.count), \(right.count))"
     }
-    
+
     let expected = [
       "",
       "",
       "(0, 0)",
       "foo",
       "foo(3, 3)bar",
-      "(0, 0)(0, 3)foo(3, 0)(0, 3)bar(3, 3)baz(3, 0)"
+      "(0, 0)(0, 3)foo(3, 0)(0, 3)bar(3, 3)baz(3, 0)",
     ]
-    
+
     for (strings, expected) in zip(stringArrays, expected) {
-      XCTAssertEqualSequences(AnySequence(strings).joined(by: separator), expected)
-      XCTAssertEqualSequences(AnySequence(strings).lazy.joined(by: separator), expected)
-      XCTAssertEqualSequences(strings.joined(by: separator), expected)
-      XCTAssertEqualSequences(strings.lazy.joined(by: separator), expected)
+      expectEqualSequences(
+        AnySequence(strings).joined(by: separator), expected)
+      expectEqualSequences(
+        AnySequence(strings).lazy.joined(by: separator), expected)
+      expectEqualSequences(strings.joined(by: separator), expected)
+      expectEqualSequences(strings.lazy.joined(by: separator), expected)
     }
   }
-  
+
   func testJoinedLazy() {
-    XCTAssertLazySequence(AnySequence([[1], [2]]).lazy.joined())
-    XCTAssertLazySequence(AnySequence([[1], [2]]).lazy.joined(by: 1))
-    XCTAssertLazySequence(AnySequence([[1], [2]]).lazy.joined(by: { _, _ in 1 }))
-    XCTAssertLazyCollection([[1], [2]].lazy.joined())
-    XCTAssertLazyCollection([[1], [2]].lazy.joined(by: 1))
-    XCTAssertLazyCollection([[1], [2]].lazy.joined(by: { _, _ in 1 }))
+    requireLazySequence(AnySequence([[1], [2]]).lazy.joined())
+    requireLazySequence(AnySequence([[1], [2]]).lazy.joined(by: 1))
+    requireLazySequence(
+      AnySequence([[1], [2]]).lazy.joined(by: { _, _ in 1 }))
+    requireLazyCollection([[1], [2]].lazy.joined())
+    requireLazyCollection([[1], [2]].lazy.joined(by: 1))
+    requireLazyCollection([[1], [2]].lazy.joined(by: { _, _ in 1 }))
   }
-  
+
   func testJoinedIndexTraversals() {
     let validator = IndexValidator<FlattenCollection<[String]>>()
-    
+
     // the last test case takes too long to run
     for strings in stringArrays.dropLast() {
       validator.validate(strings.joined() as FlattenCollection)
     }
   }
-  
+
   func testJoinedByIndexTraversals() {
     let validator1 = IndexValidator<JoinedByCollection<[String], String>>()
-    let validator2 = IndexValidator<JoinedByClosureCollection<[String], String>>()
-    
+    let validator2 = IndexValidator<
+      JoinedByClosureCollection<[String], String>
+    >()
+
     // the last test case takes too long to run
-    for (strings, separator) in product(stringArrays.dropLast(), ["", " ", ", "]) {
+    for (strings, separator) in product(
+      stringArrays.dropLast(), ["", " ", ", "])
+    {
       validator1.validate(strings.joined(by: separator))
       validator2.validate(strings.lazy.joined(by: { _, _ in separator }))
     }
+  }
+  
+  func testJoinedPrefixSuffix() {
+    let input = [
+        [5,3,0, 0,7,0, 0,0,0],
+        [6,0,0, 1,9,5, 0,0,0],
+        [0,9,8, 0,0,0, 0,6,0],
+      
+        [8,0,0, 0,6,0, 0,0,3],
+        [4,0,0, 8,0,3, 0,0,1],
+        [7,0,0, 0,2,0, 0,0,6],
+          
+        [0,6,0, 0,0,0, 2,8,0],
+        [0,0,0, 4,1,9, 0,0,5],
+        [0,0,0, 0,8,0, 0,7,9],
+    ]
+
+    func prettyString(_ sudoku: [[Int]]) -> String {
+      sudoku.chunks(ofCount: 3).map { (bigChunk: ArraySlice<[Int]>) -> String in
+           bigChunk.map { (row: [Int]) -> String in
+             row.chunks(ofCount: 3).map { (smallChunk: ArraySlice<Int>) -> String in
+               smallChunk.lazy.map(String.init).joined(separator: " ", prefix: " ", suffix: " ")
+                }.joined(separator: "|", prefix: "|", suffix: "|")
+            }.joined(separator: "\n")
+        }.joined(
+          separator: "\n+-------+-------+-------+\n",
+          prefix: "+-------+-------+-------+\n",
+          suffix: "\n+-------+-------+-------+")
+    }
+    
+    let output = prettyString(input)
+    XCTAssertEqual(
+      output,
+      """
+        +-------+-------+-------+
+        | 5 3 0 | 0 7 0 | 0 0 0 |
+        | 6 0 0 | 1 9 5 | 0 0 0 |
+        | 0 9 8 | 0 0 0 | 0 6 0 |
+        +-------+-------+-------+
+        | 8 0 0 | 0 6 0 | 0 0 3 |
+        | 4 0 0 | 8 0 3 | 0 0 1 |
+        | 7 0 0 | 0 2 0 | 0 0 6 |
+        +-------+-------+-------+
+        | 0 6 0 | 0 0 0 | 2 8 0 |
+        | 0 0 0 | 4 1 9 | 0 0 5 |
+        | 0 0 0 | 0 8 0 | 0 7 9 |
+        +-------+-------+-------+
+        """
+    )
   }
 }
