@@ -13,6 +13,30 @@
 import PackageDescription
 
 let package = Package(
+
+    name: "swift-algorithms",
+    products: [
+        .library(
+            name: "Algorithms",
+            targets: ["Algorithms"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-numerics", from: "0.0.1"),
+    ],
+    targets: [
+        .target(
+            name: "Algorithms",
+            dependencies: [
+              .product(name: "RealModule", package: "swift-numerics"),
+            ]),
+        .target(
+            name: "Benchmark",
+            dependencies: ["Algorithms"]),
+        .testTarget(
+            name: "SwiftAlgorithmsTests",
+            dependencies: ["Algorithms"]),
+    ]
+=======
   name: "swift-algorithms",
   products: [
     .library(
@@ -32,4 +56,5 @@ let package = Package(
       name: "SwiftAlgorithmsTests",
       dependencies: ["Algorithms"]),
   ]
+
 )
